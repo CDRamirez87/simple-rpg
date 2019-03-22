@@ -3,6 +3,9 @@ use rand::Rng;
 
 fn main() {
 	
+	/*-------------Init--------------*/
+	
+	let mut player = Player	{ Default::default() };
 	print_line_break();
 	println!("Welcome to RPG!");
 	println!("by KMR");
@@ -10,51 +13,58 @@ fn main() {
 
 	//Promts user for name
 	println!("Please type a name for your Warrior: ");
-	let mut temp_name = input_name();
 	
-	//Instantiates player
-	//(name: String, hit_points: i16, damage: i16, armor_class: i8, speed: i8, gold: u16)
-	let mut player = build_player(temp_name.trim().to_string(), 12, 0, 0, 0, 10);
+	let temp_name = input_name();
 	
+	player.name = temp_name.trim().to_string();
 	
 	print_line_break();
 	
-	//Builds and displays stats
-	let mut stats = build_stats();
-	println!("{}'s stats are: ", player.name);
-	print_stats(&stats);
-	
-	//Asks player if they wish to keep stats, if not, rerolls
-	print_line_break();
-	
+	//Init player stats
+	let mut stats = Stats { strength: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 };
+	//Bool to break loop
 	let mut keep_stats = false;
 	
-	println!("Keep these stats? (Y) = Yes, keep them (N) = No, reroll them");
-	keep_stats = yes_or_no();
 	
-	//If player answers no, rerolls and prompts again
 	while keep_stats == false {
 		stats = build_stats();
 		
+		println!("{}'s stats are: ", player.name);
 		print_stats(&stats);
+		
+		//Asks player if they wish to keep stats, if not, rerolls
+		print_line_break();
+		
 		println!("Keep these stats? (Y) = Yes, keep them (N) = No, reroll them");
 		
 		keep_stats = yes_or_no();
+		
+		//If player answers no, rerolls and prompts again
 	}
 	
 	//Converts and applies stat modifiers to player
-	apply_stat_mods(&mut stats, &mut player);
+	level_up(&mut stats, &mut player);
 	
-	//debug_player(&mut player);
+	println!("Player stats: {:#?}", player);
 	
-	//Player Init Complete------------------------------------
+
 	
-	//Gameplay starts-----------------------------------------
+	/*-----------------Gameplay starts-------------------*/
+	
+	
+	
 	print_line_break();
 	print_line_break();
 	println!("You arrive in town");
 	
-	//loc_town();
+	//Main game loop
+	loop {
+		println!("What do you want to do?");
+		//action_menu(&player);
+		
+		break;
+		
+	}
 	
 	
 		
@@ -63,6 +73,52 @@ fn main() {
 	
 	
 }
+
+
+/*-----------------Structs----------------*/
+#[derive(Debug)]
+struct Player {
+	name: String,
+	hit_points: i16,
+	damage: i16,
+	armor_class: i16,
+	speed: i16,
+	gold: i32,
+	xp: i32,
+	level: i16,
+	stats: Stats,
+	inventory: Inventory
+}
+
+impl Default for Player {
+	fn default() -> Player {
+		Player { 	
+			name: "Default", 
+			hit_points:		12, 
+			damage: 		0, 
+			armor_class:	0, 
+			speed:			0, 
+			gold: 			10,
+			xp:				0,
+			level:			0,
+			stats: 			Stats { Default::default() },
+			inventory:		Inventory { Default::default() },
+			}
+		}
+	}
+}
+
+impl Player {
+	fn level_up(&self) {
+		self.level += 1; 
+		self.damage += (stats_to_mods(self.stats.strength)) *  self.level;
+		self.speed += (stats_to_mods(self.stats.dex)) * self.level;
+		self.armor_class += self.speed;
+		self.hit_points += (stats_to_mods(self.stats.con)) * self.level;
+		self.gold += (stats_to_mods(self.stats.cha) * self.level * 5) as i32;
+	}
+}
+
 
 struct Stats {
 	strength: u8,
@@ -72,21 +128,82 @@ struct Stats {
 	wis: u8,
 	cha: u8,
 }
+
+impl Default for Stats {
+	fn default() -> Stats {
+		Stats { 
+			strength: 0,
+			dex: 0,
+			con: 0,
+			int: 0,
+			wis: 0,
+			cha: 0,
+		}
+	}
+}
 	
 
-struct ItemSlot {
-	name: String,
-	amount: u8,
+impl Stats {
+	fn build_stats(&self) {
+		self.strength: roll_stat(),
+		self.dex: roll_stat(),
+		self.con: roll_stat(),
+		self.int: roll_stat(),
+		self.wis: roll_stat(),
+		self.cha: roll_stat(),
+	}
 }
 
-struct Player {
-	name: String,
-	hit_points: i16,
-	damage: i16,
-	armor_class: i8,
-	speed: i8,
-	gold: i32,
+	
+struct Inventory {
+	armor: Item,
+	weapon: Item,
+	magic_item: Item,
+	potion1: Item,
+	potion2: Item,
+	Potion3: Item
+	}
+	
+impl Default for Inventory {
+	fn default() -> Inventory {
+		Inventory {
+			armor: Item { "Old Rags", 0 },
+			weapon: Item { "Bare Hands", 0},
+			magic_Item: Item { "Empty", 0},
+			potion1: Item {"Empty", 0},
+			potion2: Item {"Empty", 0},
+			potion3: Item {"Empty", 0},
+			}
+		}
+	}
 }
+			
+
+impl Inventory {
+	fn equip_armor(&self, player: &Player, item: &Item) {
+		player.armor_class -= self.armor.effect;
+		self.armor.name = item.name;
+		player.armor_class += item.effect;
+		}
+		
+	fn equip_weapon(&self, player: &Player, item: &Item) {
+		player.damage -= self.weapon.effect;
+		self.weapon.name = item.name;
+		player.damage += item.effect;
+		}
+		
+	fn equip_magic(&self, player: &Player, item: &Item) {
+		player.magic -= self.magic_item.effect;
+		self.magic_item.name = item.name;
+		player.magic += item.effect;
+		}
+	}
+
+struct Item {
+	name: String,
+	effect: i16
+}
+
 
 struct Creature {
 	name: String,
@@ -96,7 +213,10 @@ struct Creature {
 	speed: i8,
 }
 
+/*------------------Functions----------------*/
 
+fn loc_town(player: &mut Player) {
+}
 
 fn print_line_break() {
 	println!(" ");
@@ -108,7 +228,7 @@ fn input_name() -> String {
 	let mut name = String::new();
 	
 	io::stdin().read_line(&mut name).expect("Failed to read line");
-	//assert_eq! (name.pop(), Some('\n'));	
+		
 	name
 }
 
@@ -125,16 +245,6 @@ fn roll_stat() -> u8 {
 	rolls[1] + rolls[2] + rolls[3]
 }
 
-fn build_stats() -> Stats {
-	Stats {
-		strength: roll_stat(),
-		dex: roll_stat(),
-		con: roll_stat(),
-		int: roll_stat(),
-		wis: roll_stat(),
-		cha: roll_stat(),
-	}
-}
 
 fn print_stats(stats: &Stats) {
 	println!("STR: {}", stats.strength);
@@ -144,71 +254,34 @@ fn print_stats(stats: &Stats) {
 	println!("WIS: {}", stats.wis);
 	println!("CHA: {}", stats.cha);
 }
-
-
-fn build_player(name: String, hit_points: i16, damage: i16, armor_class: i8, speed: i8, gold: i32)
-	-> Player {
-		Player {
-			name,
-			hit_points,
-			damage, 
-			armor_class,
-			speed,
-			gold,
-		}
-	}
 	
 fn yes_or_no() -> bool {
-		
+
 		let mut input = String::new(); 
 		
-		io::stdin().read_line(&mut input);
+		io::stdin().read_line(&mut input).expect("Failed to read line");
 		
-		if input.trim() == "Y" || input.trim() == "y" {
-			true
-		}
-		else {
-			false
-		}
-		
+		input.trim() == "Y" || input.trim() == "y" 			
 	}
 	
-fn stats_to_mods(stat: u8) -> i8 {
+fn stats_to_mods(stat: u8) -> i16 {
 	
 	let modifier = match stat {
-		2 | 3   => -4,
-		3 | 4   => -3,
-		5 | 6   => -2,
-		7 | 8   => -1,
-		9 | 10  => 0,
-		11 | 12 => 1,
-		13 | 14 => 2, 
-		15 | 16 => 3,
-		17 | 18 => 4,
-		19 | 20 => 5,
-		_        => 0,
+		 3 | 4  => -3,
+		 5 | 6  => -2,
+		 7 | 8  => -1,
+		 9 | 10 =>  0,
+		11 | 12 =>  1,
+		13 | 14 =>  2, 
+		15 | 16 =>  3,
+		17 | 18 =>  4,
+		19 | 20 =>  5,
+		_       =>  0,
 		};
 		
 		modifier
-	
 }
 
-fn apply_stat_mods(stats: &mut Stats, player: &mut Player) {
-	//(name: String, hit_points: i16, damage: i16, armor_class: i8, speed: i8, gold: i32)
-	player.damage += stats_to_mods(stats.strength) as i16;
-	player.speed += stats_to_mods(stats.dex) as i8;
-	player.armor_class += player.speed;
-	player.hit_points += stats_to_mods(stats.con) as i16;
-	player.gold += (stats_to_mods(stats.cha) * 5) as i32;
-}
 
-fn debug_player(player: &mut Player) {
-	println!("Name: {}", player.name);
-	println!("HP: {}", player.hit_points);
-	println!("Damage: {}", player.damage);
-	println!("AC: {}", player.armor_class);
-	println!("Speed: {}", player.speed);
-	println!("Gold: {}", player.gold);
-}
 
 
